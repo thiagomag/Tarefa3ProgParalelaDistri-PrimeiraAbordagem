@@ -8,12 +8,14 @@ import java.util.Map;
 
 public class Servidor {
 
+    private static boolean isServerRunning = true;
+
     public static void main(String[] args) {
-        try {
-            ServerSocket serverSocket = new ServerSocket(12345);
+
+        try (ServerSocket serverSocket = new ServerSocket(12345)) {
             System.out.println("Servidor rodando na porta 12345...");
 
-            while (true) {
+            while (isServerRunning) {
                 System.out.println("Aguardando conexão do cliente...");
                 Socket socket = serverSocket.accept();
                 System.out.println("Cliente conectado: " + socket.getInetAddress().getHostAddress());
@@ -22,10 +24,14 @@ public class Servidor {
             }
         } catch (IOException e) {
             e.printStackTrace();
+            pararServidor();
         }
     }
-}
 
+    public static void pararServidor() {
+        isServerRunning = false;
+    }
+}
 class ClienteHandler implements Runnable {
     private final Socket socket;
 
@@ -36,7 +42,6 @@ class ClienteHandler implements Runnable {
     @Override
     public void run() {
         try {
-            // Obtém as informações de recursos da máquina
             Map<String, String> recursos = new HashMap<>();
             recursos.put("Memória Livre", String.valueOf(Runtime.getRuntime().freeMemory()));
             recursos.put("Memória Em Uso", String.valueOf(Runtime.getRuntime().totalMemory() - Runtime.getRuntime().freeMemory()));
@@ -45,7 +50,6 @@ class ClienteHandler implements Runnable {
             recursos.put("Armazenamento", getArmazenamento());
             recursos.put("Rede", getEnderecoIP());
 
-            // Envia as informações de recursos para o cliente
             OutputStream outputStream = socket.getOutputStream();
             ObjectOutputStream objectOutputStream = new ObjectOutputStream(outputStream);
             objectOutputStream.writeObject(recursos);
@@ -53,7 +57,6 @@ class ClienteHandler implements Runnable {
 
             System.out.println("Informações de recursos enviadas para o cliente: " + socket.getInetAddress().getHostAddress());
 
-            // Fecha as streams e o socket
             objectOutputStream.close();
             outputStream.close();
             socket.close();
@@ -64,13 +67,11 @@ class ClienteHandler implements Runnable {
 
     private String getArmazenamento() {
         try {
-            // Executa o comando 'wmic' para obter informações de armazenamento
-            Process process = Runtime.getRuntime().exec("wmic logicaldisk get DeviceID, FreeSpace, Size");
-            BufferedReader bufferedReader = new BufferedReader(new InputStreamReader(process.getInputStream()));
+            final var process = Runtime.getRuntime().exec("wmic logicaldisk get DeviceID, FreeSpace, Size");
+            final var bufferedReader = new BufferedReader(new InputStreamReader(process.getInputStream()));
             String line;
             StringBuilder sb = new StringBuilder();
 
-            // Lê a saída do comando e constrói uma string com as informações de armazenamento
             while ((line = bufferedReader.readLine()) != null) {
                 sb.append(line);
                 sb.append(System.lineSeparator());
@@ -88,12 +89,10 @@ class ClienteHandler implements Runnable {
     }
 
     private String getEnderecoIP() {
-        // Implemente aqui a lógica para obter o endereço IP da máquina
-        // Exemplo: retornando o endereço IP da primeira interface de rede disponível
         try {
-            InetAddress address = InetAddress.getLocalHost();
-            NetworkInterface networkInterface = NetworkInterface.getByInetAddress(address);
-            byte[] mac = networkInterface.getHardwareAddress();
+            final var address = InetAddress.getLocalHost();
+            final var networkInterface = NetworkInterface.getByInetAddress(address);
+            final var mac = networkInterface.getHardwareAddress();
             StringBuilder sb = new StringBuilder();
             for (int i = 0; i < mac.length; i++) {
                 sb.append(String.format("%02X%s", mac[i], (i < mac.length - 1) ? ":" : ""));
