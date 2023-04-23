@@ -1,4 +1,6 @@
 import java.io.*;
+import java.lang.management.ManagementFactory;
+import java.lang.management.OperatingSystemMXBean;
 import java.net.InetAddress;
 import java.net.NetworkInterface;
 import java.net.ServerSocket;
@@ -43,6 +45,10 @@ class ClienteHandler implements Runnable {
     public void run() {
         try {
             Map<String, String> recursos = new HashMap<>();
+            OperatingSystemMXBean osBean = ManagementFactory.getOperatingSystemMXBean();
+            recursos.put("Sistema Operacional", osBean.getName());
+            recursos.put("Arquitetura", osBean.getArch());
+            recursos.put("Versão", osBean.getVersion());
             recursos.put("Memória Livre", String.valueOf(Runtime.getRuntime().freeMemory()));
             recursos.put("Memória Em Uso", String.valueOf(Runtime.getRuntime().totalMemory() - Runtime.getRuntime().freeMemory()));
             recursos.put("Modelo do Processador", System.getProperty("os.arch"));
